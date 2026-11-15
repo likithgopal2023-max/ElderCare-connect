@@ -1,0 +1,6 @@
+{
+  "name": "ElderCare Connect",
+  "description": "An AI-powered elderly healthcare management, medication coordination, and family care ecosystem connecting seniors, family members, caretakers, and doctors.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

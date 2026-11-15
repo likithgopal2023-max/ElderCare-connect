@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'likith.gopal2023@gmail.com'
+      );
+    }
+
+    function isProfileOwner(profileId) {
+      return isVerifiedUser() &&
+        exists(/databases/$(database)/documents/elder_profiles/$(profileId)) &&
+        get(/databases/$(database)/documents/elder_profiles/$(profileId)).data.ownerId == request.auth.uid;
+    }
+
+    function isValidElderProfile(data) {
+      return data.keys().hasAll([
+          'ownerId', 'name', 'age', 'bloodGroup', 'careCode',
+          'primaryDoctor', 'primaryHospital', 'lastCheckInStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'name', 'age', 'bloodGroup', 'careCode',
+          'primaryDoctor', 'primaryHospital', 'lastCheckInStatus',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+        data.age is int && data.age >= 1 && data.age <= 130 &&
+        data.bloodGroup is string && data.bloodGroup.size() >= 1 && data.bloodGroup.size() <= 10 &&
+        data.careCode is string && data.careCode.size() == 6 && data.careCode.matches('^[0-9]{6}$') &&
+        data.primaryDoctor is string && data.primaryDoctor.size() >= 1 && data.primaryDoctor.size() <= 100 &&
+        data.primaryHospital is string && data.primaryHospital.size() >= 1 && data.primaryHospital.size() <= 120 &&
+        data.lastCheckInStatus is string && data.lastCheckInStatus.size() >= 1 && data.lastCheckInStatus.size() <= 60 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMedication(data, profileId) {
+      return data.keys().hasAll([
+          'ownerId', 'profileId', 'name', 'strength', 'dosage',
+          'scheduledTime', 'status', 'remainingPills', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'profileId', 'name', 'strength', 'dosage',
+          'scheduledTime', 'status', 'remainingPills', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.profileId is string && data.profileId.size() >= 1 && data.profileId.size() <= 128 && data.profileId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.profileId == profileId &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+        data.strength is string && data.strength.size() >= 1 && data.strength.size() <= 50 &&
+        data.dosage is string && data.dosage.size() >= 1 && data.dosage.size() <= 50 &&
+        data.scheduledTime is string && data.scheduledTime.size() >= 1 && data.scheduledTime.size() <= 30 &&
+        data.status is string && data.status.size() >= 1 && data.status.size() <= 20 &&
+        data.status in ['taken', 'upcoming', 'missed', 'skipped', 'snoozed'] &&
+        data.remainingPills is int && data.remainingPills >= 0 && data.remainingPills <= 1000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAppointment(data, profileId) {
+      return data.keys().hasAll([
+          'ownerId', 'profileId', 'doctorName', 'specialty', 'clinic',
+          'dateTimeLabel', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'profileId', 'doctorName', 'specialty', 'clinic',
+          'dateTimeLabel', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.profileId is string && data.profileId.size() >= 1 && data.profileId.size() <= 128 && data.profileId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.profileId == profileId &&
+        data.doctorName is string && data.doctorName.size() >= 1 && data.doctorName.size() <= 100 &&
+        data.specialty is string && data.specialty.size() >= 1 && data.specialty.size() <= 80 &&
+        data.clinic is string && data.clinic.size() >= 1 && data.clinic.size() <= 120 &&
+        data.dateTimeLabel is string && data.dateTimeLabel.size() >= 1 && data.dateTimeLabel.size() <= 60 &&
+        data.status is string && data.status.size() >= 1 && data.status.size() <= 20 &&
+        data.status in ['scheduled', 'completed', 'cancelled'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /elder_profiles/{profileId} {
+      allow get: if isSignedIn() && isValidId(profileId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() &&
+        isValidId(profileId) &&
+        isValidElderProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(profileId) &&
+        isValidElderProfile(incoming()) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().ownerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'age', 'bloodGroup', 'careCode',
+              'primaryDoctor', 'primaryHospital', 'lastCheckInStatus', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(profileId) && (existing().ownerId == request.auth.uid || isAdmin());
+
+      match /medications/{medicationId} {
+        allow get: if isSignedIn() && isValidId(profileId) && isValidId(medicationId) && (isProfileOwner(profileId) || isAdmin());
+        allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerifiedUser() &&
+          isValidId(profileId) &&
+          isValidId(medicationId) &&
+          isValidMedication(incoming(), profileId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProfileOwner(profileId);
+        allow update: if isVerifiedUser() &&
+          isValidId(profileId) &&
+          isValidId(medicationId) &&
+          isValidMedication(incoming(), profileId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().profileId == existing().profileId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            (isProfileOwner(profileId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'name', 'strength', 'dosage', 'scheduledTime', 'status', 'remainingPills', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(profileId) && isValidId(medicationId) && (isProfileOwner(profileId) || isAdmin());
+      }
+
+      match /appointments/{appointmentId} {
+        allow get: if isSignedIn() && isValidId(profileId) && isValidId(appointmentId) && (isProfileOwner(profileId) || isAdmin());
+        allow list: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerifiedUser() &&
+          isValidId(profileId) &&
+          isValidId(appointmentId) &&
+          isValidAppointment(incoming(), profileId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProfileOwner(profileId);
+        allow update: if isVerifiedUser() &&
+          isValidId(profileId) &&
+          isValidId(appointmentId) &&
+          isValidAppointment(incoming(), profileId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().profileId == existing().profileId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            (!(existing().status in ['completed', 'cancelled']) &&
+              isProfileOwner(profileId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'doctorName', 'specialty', 'clinic', 'dateTimeLabel', 'status', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(profileId) && isValidId(appointmentId) && (isProfileOwner(profileId) || isAdmin());
+      }
+    }
+  }
+}

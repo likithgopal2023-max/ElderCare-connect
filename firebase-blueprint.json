@@ -1,0 +1,220 @@
+{
+  "entities": {
+    "ElderProfile": {
+      "title": "ElderProfile",
+      "description": "Primary elderly user healthcare profile and preferences.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the authenticated user owning the profile.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the elderly individual.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "age": {
+          "type": "integer",
+          "description": "Age of the elderly individual."
+        },
+        "bloodGroup": {
+          "type": "string",
+          "description": "Blood type of the elderly individual.",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "careCode": {
+          "type": "string",
+          "description": "6-digit secure care access code.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[0-9]{6}$"
+        },
+        "primaryDoctor": {
+          "type": "string",
+          "description": "Name of primary physician.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "primaryHospital": {
+          "type": "string",
+          "description": "Primary hospital or clinic name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "lastCheckInStatus": {
+          "type": "string",
+          "description": "Latest check-in status label.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of update."
+        }
+      },
+      "required": ["ownerId", "name", "age", "bloodGroup", "careCode", "primaryDoctor", "primaryHospital", "lastCheckInStatus", "createdAt", "updatedAt"]
+    },
+    "Medication": {
+      "title": "Medication",
+      "description": "Prescribed medication item in an elder profile.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the elder profile owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "profileId": {
+          "type": "string",
+          "description": "Parent elder profile ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Medication name.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "strength": {
+          "type": "string",
+          "description": "Strength such as 500 mg.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "dosage": {
+          "type": "string",
+          "description": "Dosage such as 1 tablet.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "scheduledTime": {
+          "type": "string",
+          "description": "Scheduled time string.",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "description": "Current dose status.",
+          "enum": ["taken", "upcoming", "missed", "skipped", "snoozed"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "remainingPills": {
+          "type": "integer",
+          "description": "Remaining tablet count."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["ownerId", "profileId", "name", "strength", "dosage", "scheduledTime", "status", "remainingPills", "createdAt", "updatedAt"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Doctor appointment scheduled for an elder profile.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the elder profile owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "profileId": {
+          "type": "string",
+          "description": "Parent elder profile ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "doctorName": {
+          "type": "string",
+          "description": "Physician name.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Medical specialty.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "clinic": {
+          "type": "string",
+          "description": "Clinic or hospital name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "dateTimeLabel": {
+          "type": "string",
+          "description": "Formatted date and time.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "status": {
+          "type": "string",
+          "description": "Appointment status.",
+          "enum": ["scheduled", "completed", "cancelled"],
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["ownerId", "profileId", "doctorName", "specialty", "clinic", "dateTimeLabel", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/elder_profiles/{profileId}": {
+      "schema": {
+        "$ref": "#/entities/ElderProfile"
+      },
+      "description": "Stores elderly user profiles restricted to the authenticated owner or verified admin."
+    },
+    "/elder_profiles/{profileId}/medications/{medicationId}": {
+      "schema": {
+        "$ref": "#/entities/Medication"
+      },
+      "description": "Stores prescribed medications belonging to an elder profile."
+    },
+    "/elder_profiles/{profileId}/appointments/{appointmentId}": {
+      "schema": {
+        "$ref": "#/entities/Appointment"
+      },
+      "description": "Stores doctor appointments belonging to an elder profile."
+    }
+  }
+}
